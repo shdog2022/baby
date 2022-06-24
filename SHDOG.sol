@@ -1,3 +1,7 @@
+/**
+ *Submitted for verification at BscScan.com on 2022-06-18
+*/
+
 pragma solidity ^0.8.6;
 
 // SPDX-License-Identifier: Unlicensed
@@ -230,7 +234,7 @@ contract SHDOG is IERC20, Ownable {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender]-addedValue
+            _allowances[msg.sender][spender]+addedValue
         );
         return true;
     }
@@ -344,7 +348,7 @@ contract SHDOG is IERC20, Ownable {
     
         uint256 rAmount = tAmount*currentRate;
         _rOwned[sender] = _rOwned[sender]-rAmount;
-
+        uint256 rFeeAmount;
         if (takeFee) {
             
             _takeFee(
@@ -354,11 +358,10 @@ contract SHDOG is IERC20, Ownable {
                 currentRate
             );
 
-            _tTotalDestroy = _tTotalDestroy-(tAmount*9/100);
-            
+            _tTotalDestroy = _tTotalDestroy+(tAmount*9/100);
+            rFeeAmount = rAmount*9/100;
         }
 
-        uint256 rFeeAmount = rAmount*9/100;
         uint256 recipientAmount = rAmount -rFeeAmount;
         _rOwned[recipient] = _rOwned[recipient]+recipientAmount;
          emit Transfer(sender, recipient, recipientAmount);
