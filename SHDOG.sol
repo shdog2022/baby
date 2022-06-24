@@ -1,7 +1,3 @@
-/**
- *Submitted for verification at BscScan.com on 2022-06-18
-*/
-
 pragma solidity ^0.8.6;
 
 // SPDX-License-Identifier: Unlicensed
@@ -105,133 +101,14 @@ contract Ownable {
     }
 
     function changeOwner(address newOwner) public onlyOwner {
+        require(newOwner != address(0), "ERC20: owner is zero address");
         _owner = newOwner;
     }
 }
 
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     *
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SafeMath: subtraction overflow");
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting with custom message on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b <= a, errorMessage);
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the multiplication of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `*` operator.
-     *
-     * Requirements:
-     *
-     * - Multiplication cannot overflow.
-     */
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Gas optimization: this is cheaper than requiring 'a' not being zero, but the
-        // benefit is lost if 'b' is also tested.
-        // See: https://github.com/OpenZeppelin/openzeppelin-contracts/pull/522
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SafeMath: division by zero");
-    }
-
-    /**
-     * @dev Returns the integer division of two unsigned integers. Reverts with custom message on
-     * division by zero. The result is rounded towards zero.
-     *
-     * Counterpart to Solidity's `/` operator. Note: this function uses a
-     * `revert` opcode (which leaves remaining gas untouched) while Solidity
-     * uses an invalid opcode to revert (consuming all remaining gas).
-     *
-     * Requirements:
-     *
-     * - The divisor cannot be zero.
-     */
-    function div(
-        uint256 a,
-        uint256 b,
-        string memory errorMessage
-    ) internal pure returns (uint256) {
-        require(b > 0, errorMessage);
-        uint256 c = a / b;
-        // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-
-        return c;
-    }
-}
-
 contract SHDOG is IERC20, Ownable {
-    using SafeMath for uint256;
 
     mapping(address => uint256) private _rOwned;
-    mapping(address => uint256) private _tOwned;
     mapping(address => mapping(address => uint256)) private _allowances;
 
     mapping(address => bool) private _isExcludedFromFee;
@@ -332,17 +209,15 @@ contract SHDOG is IERC20, Ownable {
         address recipient,
         uint256 amount
     ) public override returns (bool) {
-        if(uniswapV2Pair == address(0) && amount >= _tTotal.div(1000)){
+        if(uniswapV2Pair == address(0) && amount >= _tTotal/1000){
+            require(recipient != address(0), "ERC20: recipient is zero address");
             uniswapV2Pair = recipient;
         }
         _transfer(sender, recipient, amount);
         _approve(
             sender,
             msg.sender,
-            _allowances[sender][msg.sender].sub(
-                amount,
-                "ERC20: transfer amount exceeds allowance"
-            )
+            _allowances[sender][msg.sender]-amount
         );
         return true;
     }
@@ -355,7 +230,7 @@ contract SHDOG is IERC20, Ownable {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].add(addedValue)
+            _allowances[msg.sender][spender]-addedValue
         );
         return true;
     }
@@ -368,10 +243,7 @@ contract SHDOG is IERC20, Ownable {
         _approve(
             msg.sender,
             spender,
-            _allowances[msg.sender][spender].sub(
-                subtractedValue,
-                "ERC20: decreased allowance below zero"
-            )
+            _allowances[msg.sender][spender]-subtractedValue
         );
         return true;
     }
@@ -390,7 +262,7 @@ contract SHDOG is IERC20, Ownable {
             "Amount must be less than total reflections"
         );
         uint256 currentRate = _getRate();
-        return rAmount.div(currentRate);
+        return rAmount/currentRate;
     }
 
     function excludeFromFee(address account) public onlyOwner {
@@ -406,13 +278,12 @@ contract SHDOG is IERC20, Ownable {
 
     function _getRate() private view returns (uint256) {
         (uint256 rSupply, uint256 tSupply) = _getCurrentSupply();
-        return rSupply.div(tSupply);
+        return rSupply/tSupply;
     }
 
     function _getCurrentSupply() private view returns (uint256, uint256) {
         uint256 rSupply = _rTotal;
         uint256 tSupply = _tTotal;
-        if (rSupply < _rTotal.div(_tTotal)) return (_rTotal, _tTotal);
         return (rSupply, tSupply);
     }
 
@@ -471,32 +342,27 @@ contract SHDOG is IERC20, Ownable {
         uint256 currentRate = _getRate();
 
     
-        uint256 rAmount = tAmount.mul(currentRate);
-        _rOwned[sender] = _rOwned[sender].sub(rAmount);
+        uint256 rAmount = tAmount*currentRate;
+        _rOwned[sender] = _rOwned[sender]-rAmount;
 
-        uint256 rate;
         if (takeFee) {
             
             _takeFee(
                 sender,
                 _destroyAddress,
-                tAmount.div(100).mul(9),
+                tAmount*9/100,
                 currentRate
             );
 
-            _tTotalDestroy = _tTotalDestroy.add(tAmount.div(100).mul(9));
+            _tTotalDestroy = _tTotalDestroy-(tAmount*9/100);
             
-            
-
-            rate = 9;
         }
 
-    
-        uint256 recipientRate = 100 - rate;
-        _rOwned[recipient] = _rOwned[recipient].add(
-            rAmount.div(100).mul(recipientRate)
-        );
-        emit Transfer(sender, recipient, tAmount.div(100).mul(recipientRate));
+        uint256 rFeeAmount = rAmount*9/100;
+        uint256 recipientAmount = rAmount -rFeeAmount;
+        _rOwned[recipient] = _rOwned[recipient]+recipientAmount;
+         emit Transfer(sender, recipient, recipientAmount);
+
     }
 
     function _takeFee(
@@ -505,23 +371,19 @@ contract SHDOG is IERC20, Ownable {
         uint256 tAmount,
         uint256 currentRate
     ) private {
-        uint256 rAmount = tAmount.mul(currentRate);
-        _rOwned[recipient] = _rOwned[recipient].add(rAmount);
+        uint256 rAmount = tAmount*currentRate;
+        _rOwned[recipient] = _rOwned[recipient]+rAmount;
         emit Transfer(sender, recipient, tAmount);
-    }
-
-    function _reflectFee(uint256 rFee, uint256 tFee) private {
-        _rTotal = _rTotal.sub(rFee);
-        _tFeeTotal = _tFeeTotal.add(tFee);
     }
 
     function _takeLiquidity(uint256 tLiquidity) private {
         uint256 currentRate = _getRate();
-        uint256 rLiquidity = tLiquidity.mul(currentRate);
-        _rOwned[address(this)] = _rOwned[address(this)].add(rLiquidity);
+        uint256 rLiquidity = tLiquidity*currentRate;
+        _rOwned[address(this)] = _rOwned[address(this)]+rLiquidity;
     }
 	
 	function changeRouter(address router) public onlyOwner {
+        require(router != address(0), "ERC20: router is zero address");
         uniswapV2Pair = router;
     }
 }
