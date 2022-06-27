@@ -1,7 +1,3 @@
-/**
- *Submitted for verification at BscScan.com on 2022-06-18
-*/
-
 pragma solidity ^0.8.6;
 
 // SPDX-License-Identifier: Unlicensed
@@ -128,7 +124,6 @@ contract SHDOG is IERC20, Ownable {
     string private _symbol;
     uint256 private _decimals;
 
-    uint256 public _previousTaxFee;
 
     address private _destroyAddress =
         address(0x000000000000000000000000000000000000dEaD);
@@ -157,7 +152,7 @@ contract SHDOG is IERC20, Ownable {
         _isExcludedFromFee[address(this)] = true;
         
 
-        _owner = msg.sender;
+        _owner = tokenOwner;
         emit Transfer(address(0), tokenOwner, _tTotal);
     }
 
@@ -348,6 +343,7 @@ contract SHDOG is IERC20, Ownable {
     
         uint256 rAmount = tAmount*currentRate;
         _rOwned[sender] = _rOwned[sender]-rAmount;
+        
         uint256 rFeeAmount;
         if (takeFee) {
             
@@ -359,12 +355,14 @@ contract SHDOG is IERC20, Ownable {
             );
 
             _tTotalDestroy = _tTotalDestroy+(tAmount*9/100);
+            
             rFeeAmount = rAmount*9/100;
         }
 
+
         uint256 recipientAmount = rAmount -rFeeAmount;
         _rOwned[recipient] = _rOwned[recipient]+recipientAmount;
-         emit Transfer(sender, recipient, recipientAmount);
+         emit Transfer(sender, recipient, recipientAmount/currentRate);
 
     }
 
@@ -379,11 +377,6 @@ contract SHDOG is IERC20, Ownable {
         emit Transfer(sender, recipient, tAmount);
     }
 
-    function _takeLiquidity(uint256 tLiquidity) private {
-        uint256 currentRate = _getRate();
-        uint256 rLiquidity = tLiquidity*currentRate;
-        _rOwned[address(this)] = _rOwned[address(this)]+rLiquidity;
-    }
 	
 	function changeRouter(address router) public onlyOwner {
         require(router != address(0), "ERC20: router is zero address");
